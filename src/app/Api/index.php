@@ -14,6 +14,6 @@ $telegramApi = new TelegramAPI;
 //DB Instance
 $sql = new DB();
 
-$user = $sql->table('users')->select('step')->where('user_id', $telegramApi->getUser_id())->first();
+$user = $sql->table('users')->select()->where('user_id', $telegramApi->getUser_id())->first();
 $userStep = $user['step'];
 // include some folder
