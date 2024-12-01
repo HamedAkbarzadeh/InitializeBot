@@ -3,6 +3,7 @@
 namespace src\app\Classes;
 
 use src\app\Trait\WebHook;
+
 // use src\app\Trait\Log;
 
 class TelegramAPI
@@ -19,19 +20,30 @@ class TelegramAPI
     public $last_name;
     public $username;
     public $text;
-    //media
-    public $file_id;
-    public $audio_id;
-    public $video_id;
-    public $animation_id;
+    #media
     public $media_group_id;
-    public $caption;
+    /// audio ///
+    public $audio_id;
+    public $audio_size;
+    public $audio_file_type;
+    /// video ///
+    public $video_id;
+    public $video_file_size;
+    public $video_file_type;
+    /// animation ///
+    public $animation_id;
+    /// photo ///
+    public $file_id;
     public $file_size;
     public $file_type;
+    public $caption;
 
     public $is_bot;
     public $is_permium;
+    public $entities;
     public $invite_link;
+    public $caption_entities;
+
     public function __construct()
     {
         $this->client = new Guzzle;
@@ -47,32 +59,38 @@ class TelegramAPI
             $this->last_name = $this->response['message']['from']['last_name'] ?? null;
             $this->username = $this->response['message']['from']['username'] ?? null;
             $this->text = $this->response['message']['text'] ?? null;
-            $this->is_bot = $this->response['message']['from']['is_bot']  ?? 0;
-            $this->is_permium = $this->response['message']['from']['is_permium'] ?? 0;
+            $this->is_bot = $this->response['message']['from']['is_bot'] == true ? 1 : 0;
+            $this->is_permium = $this->response['message']['from']['is_permium'] == true ? 1 : 0;
             $this->media_group_id = $this->response['message']['media_group_id'] ?? null;
-
+            $this->entities = $this->response['message']['entities'] ?? null;
             //photo
             if (isset($this->response['message']['photo'])) {
                 $this->file_id = end($this->response['message']['photo'])['file_id'] ?? null;
                 $this->file_size = end($this->response['message']['photo'])['file_size'] ?? null;
+                $this->file_type = "photo";
             } else {
                 $this->file_id = null;
             }
 
-
+            //audio
             $this->audio_id = $this->response['message']['audio']['file_id'] ?? null;
+            $this->audio_size = $this->response['message']['audio']['file_size'] ?? null;
+            $this->audio_file_type = $this->response['message']['audio']['mime_type'] ?? null;
+            //video
             $this->video_id = $this->response['message']['video']['file_id'] ?? null;
-            $this->file_size = $this->response['message']['vdieo']['file_size'] ?? null;
-            $this->file_type = $this->response['message']['vdieo']['mime_type'] ?? null;
+            $this->video_file_size = $this->response['message']['video']['file_size'] ?? null;
+            $this->video_file_type = $this->response['message']['video']['mime_type'] ?? null;
+            //animation
             $this->animation_id = $this->response['message']['animation']['file_id'] ?? null;
             $this->caption = $this->response['message']['caption'] ?? null;
+            $this->caption_entities = $this->response['message']['caption_entities'] ?? null;
         } elseif (array_key_exists('callback_query', $this->response)) {
             $this->callback_id = $this->response['callback_query']['id'] ?? null;
             $this->user_id = $this->response['callback_query']['from']['id'] ?? null;
             $this->chat_id = $this->response['callback_query']['message']['chat']['id'] ?? null;
             $this->message_id = $this->response['callback_query']['message']['message_id'] ?? null;
             $this->first_name = $this->response['callback_query']['from']['first_name'] ?? null;
-            $this->last_name =  $this->response['callback_query']['from']['last_name'] ?? null;
+            $this->last_name = $this->response['callback_query']['from']['last_name'] ?? null;
             $this->username = $this->response['callback_query']['from']['username'] ?? null;
             $this->text = $this->response['callback_query']['data'] ?? null;
         }
@@ -80,6 +98,10 @@ class TelegramAPI
     }
 
     //////////////////////// GET FUNCTIONS //////////////////////////
+    public function getResponse()
+    {
+        return $this->response;
+    }
     public function getUserID()
     {
         $sql = new DB;
@@ -90,6 +112,10 @@ class TelegramAPI
         return $this->user_id;
     }
 
+    public function getEntities()
+    {
+        return $this->entities;
+    }
     public function getChat_id()
     {
         return $this->chat_id;
@@ -121,37 +147,52 @@ class TelegramAPI
     //media
     public function getFile_id()
     {
-        return $this->file_id;
-    }
-    public function getAudio_id()
-    {
-        return $this->audio_id;
-    }
-    public function getVideo_id()
-    {
-        return $this->video_id;
+        if (isset($this->file_id)) {
+            return $this->file_id;
+        } else if (isset($this->audio_id)) {
+            return $this->audio_id;
+        } else if (isset($this->video_id)) {
+            return $this->video_id;
+        } else if (isset($this->animation_id)) {
+            return $this->animation_id;
+        }
+        return null;
     }
     public function getFile_type()
     {
-        return $this->file_type;
+        if (isset($this->video_file_type)) {
+            return $this->video_file_type;
+        } else if (isset($this->file_type)) {
+            return $this->file_type;
+        } else if (isset($this->audio_file_type)) {
+            return $this->audio_file_type;
+        }
+        return null;
     }
-    public function getAnimation_id()
+
+    public function getFile_size()
     {
-        return $this->animation_id;
+        if (isset($this->video_file_size)) {
+            return $this->video_file_size;
+        } else if (isset($this->file_size)) {
+            return $this->file_size;
+        } else if (isset($this->audio_size)) {
+            return $this->audio_size;
+        }
     }
     public function getMedia_group_id()
     {
         return $this->media_group_id;
     }
-    public function getFile_size()
-    {
-        return $this->file_size;
-    }
+
     public function getCaption()
     {
         return $this->caption;
     }
-
+    public function getCaption_entities()
+    {
+        return $this->caption_entities;
+    }
 
     public function getIs_bot()
     {
@@ -170,10 +211,13 @@ class TelegramAPI
     {
         return $this->response;
     }
-    public function sendMessage($text, $reply_markup = null, $reply_to_message_id = null, $parse_mode = null)
+    public function sendMessage($text, $reply_markup = null, $chat_id = null, $reply_to_message_id = null, $parse_mode = null)
     {
+        if (!$chat_id) {
+            $chat_id = $this->chat_id;
+        }
         $params = [
-            'chat_id' => $this->chat_id,
+            'chat_id' => $chat_id,
             'text' => $text,
         ];
 
@@ -225,12 +269,18 @@ class TelegramAPI
 
         return $response;
     }
-    public function sendPhoto($photo, $caption = null, $reply_markup = null)
+    public function sendPhoto($photo, $caption = null, $reply_markup = null, $chat_id = null, $parse_mode = null)
     {
+        if (isset($chat_id)) {
+            $this->chat_id = $chat_id;
+        }
         $params = [
             'chat_id' => $this->chat_id,
             'photo' => $photo,
         ];
+        if ($parse_mode) {
+            $params['parse_mode'] = $parse_mode;
+        }
 
         if ($caption) {
             $params['caption'] = $caption;
@@ -243,13 +293,18 @@ class TelegramAPI
 
         return $response;
     }
-    public function sendVideo($video, $caption = null, $reply_markup = null)
+    public function sendVideo($video, $caption = null, $reply_markup = null, $chat_id = null, $parse_mode = null)
     {
+        if (isset($chat_id)) {
+            $this->chat_id = $chat_id;
+        }
         $params = [
             'chat_id' => $this->chat_id,
             'video' => $video,
         ];
-
+        if ($parse_mode) {
+            $params['parse_mode'] = $parse_mode;
+        }
         if ($caption) {
             $params['caption'] = $caption;
         }
@@ -261,13 +316,41 @@ class TelegramAPI
 
         return $response;
     }
-    public function sendMediaGroup($media, $reply_markup = null)
+    public function sendAudio($audio, $caption = null, $reply_markup = null, $chat_id = null, $parse_mode = null)
     {
+        if (isset($chat_id)) {
+            $this->chat_id = $chat_id;
+        }
+        $params = [
+            'chat_id' => $this->chat_id,
+            'audio' => $audio,
+        ];
+        if ($parse_mode) {
+            $params['parse_mode'] = $parse_mode;
+        }
+        if ($caption) {
+            $params['caption'] = $caption;
+        }
+        if ($reply_markup) {
+            $params['reply_markup'] = json_encode($reply_markup);
+        }
+
+        $response = $this->client->request('sendAudio', $params);
+
+        return $response;
+    }
+    public function sendMediaGroup($media, $reply_markup = null, $chat_id = null, $parse_mode = null)
+    {
+        if (isset($chat_id)) {
+            $this->chat_id = $chat_id;
+        }
         $params = [
             'chat_id' => $this->chat_id,
             'media' => json_encode($media),
         ];
-
+        if ($parse_mode) {
+            $params['parse_mode'] = $parse_mode;
+        }
         if ($reply_markup) {
             $params['reply_markup'] = json_encode($reply_markup);
         }
@@ -281,19 +364,24 @@ class TelegramAPI
         $params = [
             'chat_id' => $this->chat_id,
             'action' => $action, // typing, upload_photo, record_video, upload_video, record_voice, find_location
-        ];                       // upload_voice, upload_document, upload_video_note, record_video_note,
+        ]; // upload_voice, upload_document, upload_video_note, record_video_note,
 
         $response = $this->client->request('sendChatAction', $params);
 
         return $response;
     }
-    public function sendAnimation($animation, $caption = null, $reply_markup = null)
+    public function sendAnimation($animation, $caption = null, $reply_markup = null, $chat_id = null, $parse_mode = null)
     {
+        if (isset($chat_id)) {
+            $this->chat_id = $chat_id;
+        }
         $params = [
             'chat_id' => $this->chat_id,
             'animation' => $animation,
         ];
-
+        if ($parse_mode) {
+            $params['parse_mode'] = $parse_mode;
+        }
         if ($caption) {
             $params['caption'] = $caption;
         }
@@ -310,7 +398,7 @@ class TelegramAPI
 
         $params = [
             'chat_id' => $chat_id,
-            'user_id' => $user_id
+            'user_id' => $user_id,
         ];
 
         $response = $this->client->request('getChatMember', $params);
